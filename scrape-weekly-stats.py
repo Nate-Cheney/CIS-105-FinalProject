@@ -31,7 +31,7 @@ def scrape_week_stats(week: str):
                 stat = s.text.strip()
                 player_stats += f"{stat},"
         
-        week_stats += f"{player_stats},{week},\n"
+        week_stats += f"{player_stats}{week},\n"
 
     return week_stats
 
