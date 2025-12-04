@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Analytics Dashboard</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- SQL.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+            padding: 60px 0;
+            margin-bottom: 40px;
+        }
+        
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-title {
+            color: #58a6ff;
+            border-bottom: 2px solid #1f6feb;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .info-card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-2px);
+            border-color: #58a6ff;
+        }
+        
+        .code-block {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .dashboard-section {
+            background-color: #161b22;
+            border-radius: 8px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+        
+        .controls-section {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-table {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .stats-table table {
+            margin-bottom: 0;
+        }
+        
+        .stats-table thead {
+            background-color: #161b22;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .stats-table th {
+            cursor: pointer;
+            user-select: none;
+            padding: 12px;
+            border-bottom: 2px solid #30363d;
+            font-weight: 600;
+        }
+        
+        .stats-table th:hover {
+            background-color: #1f6feb;
+        }
+        
+        .stats-table th .sort-icon {
+            margin-left: 5px;
+            opacity: 0.5;
+        }
+        
+        .stats-table th.sorted .sort-icon {
+            opacity: 1;
+        }
+        
+        .stats-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #21262d;
+        }
+        
+        .stats-table tbody tr:hover {
+            background-color: #161b22;
+        }
+        
+        .trend-positive {
+            color: #3fb950;
+        }
+        
+        .trend-negative {
+            color: #f85149;
+        }
+        
+        .trend-neutral {
+            color: #8b949e;
+        }
+        
+        .badge-pos {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .metric-badge {
+            background-color: #1f6feb;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .stats-table {
+                font-size: 0.85rem;
+            }
+            
+            .stats-table th,
+            .stats-table td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">🏈 FF Analytics</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#methodology">Methodology</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#dashboard">Dashboard</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="hero-title mb-3">Fantasy Football Analytics Dashboard</h1>
+            <p class="lead">Data-driven insights for fantasy football performance analysis and predictions</p>
+            <p class="text-muted">2024-2025 NFL Season • Weeks 1-14</p>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="container mb-5">
+        <h2 class="section-title">About This Project</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h4>📊 Data Collection</h4>
+                    <p>This project uses web scraping to collect weekly fantasy football statistics from FootballDB.com. The scraper:</p>
+                    <ul>
+                        <li>Fetches offensive player stats for weeks 1-14 of the 2024-2025 season</li>
+                        <li>Identifies player positions (QB, RB, WR, TE)</li>
+                        <li>Stores data in a SQLite database for efficient querying</li>
+                        <li>Implements rate limiting to avoid detection</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h4>🎯 Key Features</h4>
+                    <ul>
+                        <li><strong>Consistency Analysis:</strong> Standard deviation and coefficient of variation</li>
+                        <li><strong>Rolling Averages:</strong> 3-week rolling performance metrics</li>
+                        <li><strong>Trend Analysis:</strong> Identify improving/declining players</li>
+                        <li><strong>Projections:</strong> Data-driven predictions for upcoming weeks</li>
+                        <li><strong>Position Filtering:</strong> Analyze by QB, RB, WR, TE, or Flex</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Methodology Section -->
+    <section id="methodology" class="container mb-5">
+        <h2 class="section-title">Methodology</h2>
+        
+        <!-- Scraping Process -->
+        <div class="info-card">
+            <h4>🕷️ Web Scraping Process</h4>
+            <p>The <code>scrape-weekly-stats.py</code> script automates data collection:</p>
+            <div class="code-block">
+<pre>from bs4 import BeautifulSoup
+from random import randint
+import requests
+import time
+
+
+def get_player_position(url: str) -> tuple:
+    headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    section_top = soup.find("div", class_="sectiontop")
+    divs = section_top.find_all("div", class_="td")
+    
+    # Get position's 'b' tag and extract the next object's text
+    position = section_top.find("b", string="Position:").next_sibling.strip()
+
+    return position
+
+
+def scrape_week_stats(week: str, player_positions: dict):
+    url = f"https://www.footballdb.com/fantasy-football/index.html?yr=2025&pos=OFF&wk={week}&key=b6406b7aea3872d5bb677f064673c57f"
+    
+    headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    table = soup.find("table", class_="statistics")
+    tbody = table.find("tbody")
+    rows = tbody.find_all("tr")
+    
+    week_stats = ""
+    for row in rows:  # For each player
+        data = row.find_all("td")
+        player_stats = ""
+        for i,s in enumerate(data):  # for each stat
+            if i == 0:
+                names_array = s.text.strip().split()
+                name = f"{names_array[0]} {names_array[1]}"
+                player_stats += f"{name},"
+
+                if name not in player_positions.keys():
+                    # Get position and add to stat string
+                    player_url = f"https://www.footballdb.com{row.find('a').get('href')}"
+                    time.sleep(randint(0,1))  # sleep to avoid detection
+                    position = get_player_position(player_url)
+                    player_positions[name] = position
+                    player_stats += f"{position},"
+                
+                else:
+                    player_stats += f"{player_positions[name]},"
+                
+            else:
+                stat = s.text.strip()
+                player_stats += f"{stat},"
+         
+        week_stats += f"{player_stats}{week}\n"
+        print(f"{name} done.")
+
+    return week_stats
+
+
+if __name__ == "__main__":
+    with open ("weekly.csv", "w") as f:
+        csv = ""
+        player_positions = {}
+        for i in range(1,15):
+            print(f"{'='*20}\nScraping week {i}...\n{'='*20}")
+            csv += scrape_week_stats(i, player_positions)
+
+        f.write(csv)</pre>
+            </div>
+        </div>
+
+        <!-- Consistency Metrics -->
+        <div class="info-card mt-4">
+            <h4>📈 Consistency Metrics</h4>
+            
+            <h5 class="mt-3">Standard Deviation</h5>
+            <p>Measures how much individual weekly scores differ from the player's average. Lower values indicate more consistent performance.</p>
+            <p><strong>Formula:</strong> <span class="metric-badge">σ = √(Σ(x - μ)² / n)</span></p>
+            
+            <h5 class="mt-3">Coefficient of Variation (CV)</h5>
+            <p>A better consistency metric that accounts for different scoring levels. It's the standard deviation divided by the mean.</p>
+            <p><strong>Example:</strong></p>
+            <ul>
+                <li>Player A: 20 pts/game, σ = 5 → CV = 0.25 (25% variation)</li>
+                <li>Player B: 10 pts/game, σ = 5 → CV = 0.50 (50% variation)</li>
+            </ul>
+            <p>Player A is more consistent relative to their scoring level.</p>
+            
+            <div class="code-block mt-3">
+<pre>SELECT Player, Pos, 
+    ROUND(AVG(Pts), 3) AS Avg_Pts,
+    ROUND(SQRT(AVG(Pts * Pts) - (AVG(Pts) * AVG(Pts))), 3) AS Std_Dev_Pts,
+    ROUND(SQRT(AVG(Pts * Pts) - (AVG(Pts) * AVG(Pts))) / AVG(Pts), 3) AS Coef_Var
+FROM weekly
+GROUP BY Pos, Player
+HAVING AVG(Pts) > 0;</pre>
+            </div>
+        </div>
+
+        <!-- Projected Points -->
+        <div class="info-card mt-4">
+            <h4>🔮 Projected Points</h4>
+            <p>Uses a rolling 3-week average with trend adjustment to predict future performance.</p>
+            
+            <h5 class="mt-3">Why Rolling Average?</h5>
+            <ul>
+                <li><strong>Recency bias:</strong> Recent performance is more predictive than season-long averages</li>
+                <li><strong>Smoothing:</strong> Reduces week-to-week noise while capturing trends</li>
+                <li><strong>Adaptability:</strong> Responds to player/team changes throughout the season</li>
+            </ul>
+            
+            <h5 class="mt-3">Calculation Method</h5>
+            <p><strong>Rolling Average:</strong> Average of the last 3 weeks (including current week)</p>
+            <p><strong>Trend:</strong> <span class="metric-badge">(Current Week - 2 Weeks Ago) / 2</span></p>
+            <p><strong>Projection:</strong> <span class="metric-badge">Rolling Average + Trend</span></p>
+            
+            <p class="mt-3"><strong>Example for Week 5:</strong></p>
+            <ul>
+                <li>Week 3: 15 pts, Week 4: 18 pts, Week 5: 21 pts</li>
+                <li>Rolling Avg = (15 + 18 + 21) / 3 = 18 pts</li>
+                <li>Trend = (21 - 15) / 2 = +3 pts/week</li>
+                <li>Week 6 Projection = 18 + 3 = <strong>21 pts</strong></li>
+            </ul>
+            
+            <div class="code-block mt-3">
+<pre>WITH rolling AS (
+    SELECT Player, Pos, Week, Pts,
+        AVG(Pts) OVER (
+            PARTITION BY Player 
+            ORDER BY Week 
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rolling_avg,
+        LAG(Pts, 2) OVER (PARTITION BY Player ORDER BY Week) AS two_weeks_ago
+    FROM weekly
+),
+projections AS (
+    SELECT Player, Pos, Week, Pts as actual_pts, rolling_avg,
+        CASE
+            WHEN weeks_in_avg >= 3 
+            THEN rolling_avg + ((Pts - two_weeks_ago) / 2.0)
+            ELSE rolling_avg
+        END AS projected_pts
+    FROM rolling
+)
+SELECT * FROM projections WHERE weeks_in_avg >= 3;</pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="container mb-5">
+        <div class="dashboard-section">
+            <h2 class="section-title">Interactive Analytics Dashboard</h2>
+            
+            <!-- Loading Spinner -->
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading database...</p>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls-section" id="controlsSection" style="display: none;">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="positionFilter" class="form-label">Position</label>
+                        <select class="form-select" id="positionFilter">
+                            <option value="ALL">All Positions</option>
+                            <option value="FLEX">Flex (RB/WR/TE)</option>
+                            <option value="QB">QB</option>
+                            <option value="RB">RB</option>
+                            <option value="WR">WR</option>
+                            <option value="TE">TE</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="weekFilter" class="form-label">Week</label>
+                        <select class="form-select" id="weekFilter">
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="minGamesFilter" class="form-label">Min Games Played</label>
+                        <input type="number" class="form-control" id="minGamesFilter" value="3" min="1" max="14">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" id="applyFilters">Apply Filters</button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">
+                            <strong>ℹ️ How it works:</strong> When you select a week, the table shows data up to that week only. 
+                            Averages and projections are calculated using historical data (Week 1 through your selected week).
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Table -->
+            <div class="stats-table mt-4" id="statsTable" style="display: none;">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th data-sort="player">Player <span class="sort-icon">↕</span></th>
+                                <th data-sort="position">Pos <span class="sort-icon">↕</span></th>
+                                <th data-sort="avgPoints">Avg Pts <span class="sort-icon">↕</span></th>
+                                <th data-sort="coefVar">Var Coef <span class="sort-icon">↕</span></th>
+                                <th data-sort="weekPoints">Week Pts <span class="sort-icon">↕</span></th>
+                                <th data-sort="rollingAvg">Rolling Avg <span class="sort-icon">↕</span></th>
+                                <th data-sort="trend">Trend <span class="sort-icon">↕</span></th>
+                                <th data-sort="projection">Next Week <span class="sort-icon">↕</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsTableBody">
+                            <!-- Will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 text-center text-muted" id="tableFooter">
+                    Showing <span id="rowCount">0</span> players
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0 text-muted">Fantasy Football Analytics Dashboard • Data from FootballDB.com • 2024-2025 Season</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application JavaScript -->
+    <script>
+        let db = null;
+        let currentData = [];
+        let sortColumn = 'avgPoints';
+        let sortDirection = 'desc';
+
+        // Initialize SQL.js and load database
+        async function initDatabase() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            
+            try {
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+                
+                const response = await fetch('data/weekly.db');
+                const buffer = await response.arrayBuffer();
+                db = new SQL.Database(new Uint8Array(buffer));
+                
+                console.log('Database loaded successfully');
+                
+                // Populate week filter
+                populateWeekFilter();
+                
+                // Show controls and hide spinner
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('controlsSection').style.display = 'block';
+                document.getElementById('statsTable').style.display = 'block';
+                
+                // Load initial data
+                loadData();
+                
+            } catch (error) {
+                console.error('Error loading database:', error);
+                document.getElementById('loadingSpinner').innerHTML = 
+                    '<div class="alert alert-danger">Error loading database. Please check the console for details.</div>';
+            }
+        }
+
+        // Populate week filter dropdown
+        function populateWeekFilter() {
+            const weekFilter = document.getElementById('weekFilter');
+            const result = db.exec('SELECT DISTINCT CAST(Week AS INTEGER) as Week FROM weekly ORDER BY Week DESC');
+            
+            if (result.length > 0) {
+                const weeks = result[0].values;
+                weekFilter.innerHTML = weeks.map(w => 
+                    `<option value="${w[0]}">Week ${w[0]}</option>`
+                ).join('');
+            }
+        }
+
+        // Load and process data
+        function loadData() {
+            const position = document.getElementById('positionFilter').value;
+            const selectedWeek = parseInt(document.getElementById('weekFilter').value);
+            const minGames = parseInt(document.getElementById('minGamesFilter').value);
+            
+            // Build position filter
+            let positionFilter = '';
+            if (position === 'FLEX') {
+                positionFilter = "AND Pos IN ('RB', 'WR', 'TE')";
+            } else if (position !== 'ALL') {
+                positionFilter = `AND Pos = '${position}'`;
+            }
+            
+            // Query to get all data up to selected week
+            const query = `
+                WITH player_stats AS (
+                    SELECT 
+                        Player,
+                        Pos,
+                        CAST(Week AS INTEGER) as Week,
+                        CAST(Pts AS REAL) as Pts,
+                        AVG(CAST(Pts AS REAL)) OVER (
+                            PARTITION BY Player 
+                            ORDER BY CAST(Week AS INTEGER)
+                            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+                        ) AS rolling_avg,
+                        COUNT(*) OVER (
+                            PARTITION BY Player 
+                            ORDER BY CAST(Week AS INTEGER)
+                            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+                        ) AS weeks_in_rolling,
+                        LAG(CAST(Pts AS REAL), 2) OVER (PARTITION BY Player ORDER BY CAST(Week AS INTEGER)) AS two_weeks_ago
+                    FROM weekly
+                    WHERE CAST(Week AS INTEGER) <= ${selectedWeek}
+                ),
+                player_aggregates AS (
+                    SELECT 
+                        Player,
+                        Pos,
+                        COUNT(*) as games_played,
+                        AVG(CAST(Pts AS REAL)) as avg_pts,
+                        SQRT(AVG(CAST(Pts AS REAL) * CAST(Pts AS REAL)) - (AVG(CAST(Pts AS REAL)) * AVG(CAST(Pts AS REAL)))) / AVG(CAST(Pts AS REAL)) as coef_var
+                    FROM weekly
+                    WHERE CAST(Week AS INTEGER) <= ${selectedWeek}
+                    GROUP BY Player, Pos
+                    HAVING games_played >= ${minGames}
+                )
+                SELECT 
+                    ps.Player,
+                    ps.Pos,
+                    pa.avg_pts,
+                    pa.coef_var,
+                    ps.Pts as week_pts,
+                    ps.rolling_avg,
+                    CASE 
+                        WHEN ps.weeks_in_rolling >= 3 
+                        THEN (ps.Pts - ps.two_weeks_ago) / 2.0
+                        ELSE 0
+                    END as trend,
+                    CASE 
+                        WHEN ps.weeks_in_rolling >= 3 
+                        THEN ps.rolling_avg + ((ps.Pts - ps.two_weeks_ago) / 2.0)
+                        ELSE ps.rolling_avg
+                    END as projection,
+                    ps.weeks_in_rolling
+                FROM player_stats ps
+                JOIN player_aggregates pa ON ps.Player = pa.Player AND ps.Pos = pa.Pos
+                WHERE ps.Week = ${selectedWeek}
+                    ${positionFilter}
+                ORDER BY pa.avg_pts DESC
+            `;
+            
+            try {
+                const result = db.exec(query);
+                
+                if (result.length > 0) {
+                    currentData = result[0].values.map(row => ({
+                        player: row[0],
+                        position: row[1],
+                        avgPoints: parseFloat(row[2]).toFixed(2),
+                        coefVar: parseFloat(row[3]).toFixed(3),
+                        weekPoints: parseFloat(row[4]).toFixed(2),
+                        rollingAvg: row[5] ? parseFloat(row[5]).toFixed(2) : '-',
+                        trend: row[6] ? parseFloat(row[6]).toFixed(2) : '-',
+                        projection: row[7] ? parseFloat(row[7]).toFixed(2) : '-',
+                        weeksInRolling: row[8]
+                    }));
+                    
+                    sortAndRenderTable();
+                } else {
+                    currentData = [];
+                    renderTable();
+                }
+                
+            } catch (error) {
+                console.error('Query error:', error);
+                alert('Error loading data. Please check the console.');
+            }
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('statsTableBody');
+            
+            if (currentData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No data available for selected filters</td></tr>';
+                document.getElementById('rowCount').textContent = '0';
+                return;
+            }
+            
+            tbody.innerHTML = currentData.map(row => {
+                const trendClass = parseFloat(row.trend) > 0 ? 'trend-positive' : 
+                                  parseFloat(row.trend) < 0 ? 'trend-negative' : 'trend-neutral';
+                const trendIcon = parseFloat(row.trend) > 0 ? '↗' : 
+                                 parseFloat(row.trend) < 0 ? '↘' : '→';
+                
+                const positionBadge = {
+                    'QB': 'bg-danger',
+                    'RB': 'bg-success',
+                    'WR': 'bg-primary',
+                    'TE': 'bg-warning'
+                };
+                
+                return `
+                    <tr>
+                        <td><strong>${row.player}</strong></td>
+                        <td><span class="badge ${positionBadge[row.position]} badge-pos">${row.position}</span></td>
+                        <td>${row.avgPoints}</td>
+                        <td>${row.coefVar}</td>
+                        <td><strong>${row.weekPoints}</strong></td>
+                        <td>${row.rollingAvg}</td>
+                        <td class="${trendClass}">${trendIcon} ${row.trend}</td>
+                        <td><strong>${row.projection}</strong></td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('rowCount').textContent = currentData.length;
+        }
+
+        // Sort and render
+        function sortAndRenderTable() {
+            currentData.sort((a, b) => {
+                let aVal = a[sortColumn];
+                let bVal = b[sortColumn];
+                
+                // Handle numeric columns
+                if (sortColumn !== 'player' && sortColumn !== 'position') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                }
+                
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            renderTable();
+            updateSortIndicators();
+        }
+
+        // Update sort indicators
+        function updateSortIndicators() {
+            document.querySelectorAll('.stats-table th').forEach(th => {
+                th.classList.remove('sorted');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = '↕';
+                }
+            });
+            
+            const activeTh = document.querySelector(`th[data-sort="${sortColumn}"]`);
+            if (activeTh) {
+                activeTh.classList.add('sorted');
+                const icon = activeTh.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                }
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('applyFilters').addEventListener('click', loadData);
+
+        // Table header sorting
+        document.querySelectorAll('.stats-table th[data-sort]').forEach(th => {
+            th.addEventListener('click', function() {
+                const newColumn = this.dataset.sort;
+                
+                if (sortColumn === newColumn) {
+                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortColumn = newColumn;
+                    sortDirection = 'desc';
+                }
+                
+                sortAndRenderTable();
+            });
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initDatabase);
+    </script>
+</body>
+</html>
