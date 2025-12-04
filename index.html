@@ -193,6 +193,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#dashboard">Dashboard</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#ai-prompts">AI Prompts</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -406,6 +409,85 @@ projections AS (
 )
 SELECT * FROM projections WHERE weeks_in_avg >= 3;</pre>
             </div>
+        </div>
+    </section>
+
+
+    <!-- AI Prompts Section -->
+    <section id="ai-prompts" class="container mb-5">
+        <h2 class="section-title">AI Prompts Used</h2>
+        <p class="text-muted mb-4">This project was built with assistance from GitHub Copilot. Below are the key prompts used to generate the dashboard:</p>
+        
+        <div class="info-card">
+            <h5>Prompt 1: Initial Dashboard Creation</h5>
+            <div class="code-block">
+<pre><strong>Role:</strong> You are an expert Full Stack Developer and Data Visualization specialist.
+
+<strong>Goal:</strong> Build a 'landing page with information and a Fantasy Football Analytics dashboard using a single `index.html` file and vanilla JavaScript.
+
+<strong>Landing Page</strong> 
+
+The landing page should be simple and clean. It should document the scraping process done in `scrape-weekly-stats.py`. It should use `explanaition.md` to explain the SQL queries in `data/queries.sql`. And it should explain the following web application
+
+<strong>App</strong>
+
+<strong>Architecture & Data Loading:</strong>
+The website must run client-side.
+Use the `sql.js` library to load the `data/weekly.db` file directly in the browser.
+
+<strong>UI Layout:</strong>
+1.  <strong>Header:</strong> Title of the project.
+2.  <strong>Controls Section:</strong>
+    * <strong>Position Dropdown:</strong> Options: All, Flex (RB/WR/TE), QB, RB, WR, TE.
+    * <strong>Week Dropdown:</strong> A selector for the Week number.
+3.  <strong>Data Display:</strong> A clean, sortable HTML table.
+
+<strong>Functionality & Logic:</strong>
+1.  <strong>Filtering:</strong>
+    * When a user selects a Position, filter the table to show only that position (or the specific "Flex" group).
+    * <strong>Critical:</strong> When a user selects a "Week" (e.g., Week 5), the app must filter out any data from the future (Week 6+). However, it should use historical data (Week 1-4) to calculate averages.
+2.  <strong>Columns to Display:</strong>
+    * Player Name
+    * Position
+    * Avg Points (All season up to selected week)
+    * Var Coef (Coefficient of Variation)
+    * Points Scored (In the specifically selected week)
+    * Rolling Average (Last 3 weeks)
+    * Trend ([Explain logic: e.g., Is current week higher than average?])
+    * Next Week Projection ([Explain logic: e.g., Weighted average of last 3 games])
+
+<strong>Design Requirements:</strong>
+* Use Bootstrap 5 for responsiveness and a dark theme.
+* Ensure the table is responsive on mobile devices.
+
+<strong>Deliverables:</strong>
+1.  The complete `index.html` file (containing CSS and JS).
+2.  [If Option 1] The updated Python script to export JSON.</pre>
+            </div>
+        </div>
+
+        <div class="info-card mt-4">
+            <h5>Prompt 2: Display Actual Scraping Code</h5>
+            <div class="code-block">
+<pre>Perfect.
+
+Now under the psudocode web scraping section I'd like to display the actual code from scrape-weekly-stats.py</pre>
+            </div>
+        </div>
+
+        <div class="info-card mt-4">
+            <h5>Prompt 3: Add AI Prompts Section</h5>
+            <div class="code-block">
+<pre>Good.
+
+Now create a new section called 'AI Prompts Used' and include the 3 prompts used in `ui_prompt.md` in that section. 
+
+> Note that the prompts are separated by '---'</pre>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4">
+            <strong>💡 About AI-Assisted Development:</strong> This project demonstrates how AI tools like GitHub Copilot can accelerate development by generating boilerplate code, implementing complex SQL queries, and creating responsive UI components. The developer still provides the direction, requirements, and iterative feedback to refine the output.
         </div>
     </section>
 
