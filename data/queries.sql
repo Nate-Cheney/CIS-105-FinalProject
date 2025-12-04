@@ -1,6 +1,3 @@
-
-SELECT * FROM weekly;
-
 --- Most consistent performers by position (lowest std dev of points scored) ---
 SELECT Player, Pos, ROUND(AVG(Pts),3) AS Avg_Pts, 
     ROUND(SQRT(AVG(Pts * Pts) - (AVG(Pts) * AVG(Pts))),3) AS Std_Dev_Pts,
